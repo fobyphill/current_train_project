@@ -66,7 +66,11 @@
                     {% include 'sales/cart-items.html' %}
                 </div>
             </div>
-
+            <div class="card">
+                <div class="card-body">
+                    {% include 'sales/get-items.html' %}
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}
@@ -161,6 +165,8 @@
                  let price = parseFloat($tds[1].childNodes[0].nodeValue);
                  let $total = $tds[4].children[0];
                  $total.innerText = String(price * num);
+                 cartTable.row().data()[4] = String(num * price);
+                 calc_cart();
                  return false;
              });
             $(document).on('keyup keypress blur change', '.sales-input', function (e) {
@@ -201,14 +207,25 @@
                 ]).draw(false);
 
                 $('#item-'+id).parents('tr').addClass('d-none')
+                calc_cart();
             });
-
             $(document).on('click', '.removeItem', function (e) {
                 var parentTr = $(this).parents('tr');
                 var id = cartTable.row(parentTr).data()[7];
                 cartTable.row(parentTr).remove().draw(false);
                 $('#item-'+id.toString()).parents('tr').removeClass('d-none');
+                calc_cart();
             });
+            function calc_cart(){
+                let itogo = 0;// Итоговая потребительская сумма
+                let table_cart = document.getElementById('cart-table').children[1] // тело таблицы
+                for (let i = 0; i < cartTable.rows().count(); i++){
+                    itogo += parseFloat(table_cart.children[i].children[4].textContent);
+                }
+                document.getElementById('itogo_table').children[0].children[0].children[1].innerHTML =
+                     "<h4><u>" + String(itogo) + "</u></h4>";
+                return false;
+            }
         });
     </script>
 {% endblock %}
