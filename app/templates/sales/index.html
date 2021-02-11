@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block extra_css %}
+    <style>
+        span {
+            cursor: pointer;
+        }
+
+        .minus, .plus {
+            width: 21px;
+            height: 3px;
+            background: #f2f2f2;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            display: inline-table;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .sales-input {
+            height: 27px;
+            width: 50px;
+            text-align: center;
+            font-size: 15px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .sales-input2{
+            height: 27px;
+            width: 50px;
+            text-align: center;
+            font-size: 15px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .total-field{
+            width: 75px;
+        }
+
+        .dataTables_filter {
+           float: left !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-body">
+                    {% include 'sales/items.html' %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-body">
+                    {% include 'sales/cart-items.html' %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        $(document).ready(function () {
+            var itemTable = $('#data-table').DataTable({
+                responsive: true,
+                paging: false,
+                pageLength: 20,
+                searching: true,
+                ordering: false,
+                autoWidth: false,
+                dom: '<"pull-left"f><"pull-right"l>tip',
+                initComplete: function () {
+                    var searchField = $('.dataTables_filter input[type="search"]');
+                    searchField.css({'width': '500px', 'display': 'inline-block'});
+                    searchField.addClass('mr-auto')
+                }
+            });
+
+            var cartTable = $('#cart-table').DataTable({
+                responsive: true,
+                paging: false,
+                searching: false,
+                ordering: false,
+                autoWidth: false,
+                info: false,
+                columnDefs: [
+                    {
+                        targets: [ 2 ],
+                        render  : function(data, type, row){
+                            return '<div class="number">' +
+                                        '<span class="minus">-</span>' +
+                                            '<input class="sales-input2" type="text"  name="' + data + '-quantity" value="1" max="' + row[6] + '"/>' +
+                                        '<span class="plus">+</span>' +
+                                    '</div>';
+                        }
+                    },
+                    {
+                        targets: [ 3 ],
+                        render  : function(data, type, row){
+                            return '<div class="sales-input2"><span></span></div>';
+                                {#'<input class="sales-input2" type="number" name="' + data + '-discount" value="0" min="0"/>';#}
+                        }
+                    },
+                    {
+                        targets: [4],
+                        render  : function(data, type, row){
+                             return '<div class="total-field"><span id="'+ row[7] +'_total">'
+                                 + Number(data).toFixed(3) + '</span></div>';
+                        }
+                    },
+                    {
+                        "targets": [ 6 ],
+                        "visible": false,
+                        "searchable": false
+                    },
+                    {
+                        "targets": [ 7 ],
+                        "visible": false,
+                        "searchable": false
+                    },
+                ]
+            });
+
+            $(document).on('click', '.minus', function (e) {
+                var $input = $(this).parent().find('input');
+                var count = parseInt($input.val()) - 1;
+                count = count < 1 ? 1 : count;
+                $input.val(count);
+                $input.change();
+                return false;
+            });
+
+             $(document).on('click', '.plus', function (e) {
+                var $input = $(this).parent().find('input');
+                $input.val(parseInt($input.val()) + 1);
+                $input.change();
+                return false;
+            });
+             $(document).on('change', '.sales-input2', function (e){
+                 let $input_change = $(this).parent().find('input');
+                 let $tds = $(this).parent().parent().parent().find('td');
+                 let stock = parseInt(cartTable.row($tds).data()[6]);
+                 let num = parseInt($input_change[0].value);
+                 if (num > stock){
+                     num = stock
+                     $input_change[0].value = num
+                 }
+                 let price = parseFloat($tds[1].childNodes[0].nodeValue);
+                 let $total = $tds[4].children[0];
+                 $total.innerText = String(price * num);
+                 return false;
+             });
+            $(document).on('keyup keypress blur change', '.sales-input', function (e) {
+                var limit = $(this).attr('max');
+
+                if(limit) {
+                    if ($(this).val() > limit) {
+                        $(this).val(limit);
+                    }
+                }
+
+                if ($(this).val() < 0) {
+                    $(this).val(0);
+                }
+
+                if ($(this).val() < 0) {
+                    $(this).val(0);
+                }
+
+                var parentTr = $(this).parents('tr');
+                var id = cartTable.row(parentTr).row(':last-child').data()[7];
+            });
+
+            $('.addItem').click(function () {
+                var id = $(this).attr('data-id');
+                var name = $(this).attr('data-name');
+                var stock = $(this).attr('data-stock');
+                var price = $(this).attr('data-price');
+                cartTable.row.add([
+                    name,
+                    price,
+                    id,
+                    id,
+                    parseFloat(price),
+                    '<button class="btn btn-sm btn-danger removeItem">Remove</button>',
+                    stock,
+                    id,
+                ]).draw(false);
+
+                $('#item-'+id).parents('tr').addClass('d-none')
+            });
+
+            $(document).on('click', '.removeItem', function (e) {
+                var parentTr = $(this).parents('tr');
+                var id = cartTable.row(parentTr).data()[7];
+                cartTable.row(parentTr).remove().draw(false);
+                $('#item-'+id.toString()).parents('tr').removeClass('d-none');
+            });
+        });
+    </script>
+{% endblock %}
