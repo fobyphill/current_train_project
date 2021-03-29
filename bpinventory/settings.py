@@ -76,8 +76,18 @@ WSGI_APPLICATION = 'bpinventory.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        # 'NAME': 'db_bp',
+        # 'USER': 'root',
+        # 'PASSWORD': 'root',
+        # 'HOST': 'localhost',
+        'NAME': 'opt_ftrade',
+        'USER': 'admin',
+        'PASSWORD': 'password',
+        'HOST': 'db1.hq.f-trade.ru',
+        'PORT': '3306',
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

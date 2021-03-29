@@ -109,7 +109,6 @@ class Item(BasicModels):
     objects = MyManager()
     name = models.CharField(max_length=100, null=True, blank=True, unique=True)
     selling_price = models.DecimalField(null=True, blank=True, decimal_places=3, max_digits=15)
-    original_price = models.DecimalField(null=True, blank=True, decimal_places=3, max_digits=15)
     category = models.ForeignKey(Category, on_delete=models.DO_NOTHING)
     stock = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -139,7 +138,7 @@ class Supplier(BasicModels):
 
 
 class Transfer(BasicModels):
-    To = models.ForeignKey(Supplier, related_name="to+", on_delete=models.DO_NOTHING)
+    #To = models.ForeignKey(Supplier, related_name="to+", on_delete=models.DO_NOTHING)
     items = models.ManyToManyField(Item, through="ItemTransfer")
     user = models.ForeignKey(UserAccount, on_delete=models.DO_NOTHING)
     delivered_by = models.CharField(max_length=255, default='')
@@ -149,6 +148,7 @@ class ItemTransfer(BasicModels):
     quantity = models.DecimalField(null=True, blank=True, decimal_places=3, max_digits=15)
     item = models.ForeignKey(Item, on_delete=models.DO_NOTHING)
     transfer = models.ForeignKey(Transfer, null=True, blank=True, on_delete=models.DO_NOTHING)
+    total = models.FloatField(default=1)
 
     @property
     def calculate_total(self):
@@ -230,3 +230,12 @@ class Event(BasicModels):
         db_table = 'events'
         verbose_name = 'Event Log'
         verbose_name_plural = "Event Logs"
+
+
+class UsersPrice(models.Model):
+    user = models.ForeignKey(UserAccount, on_delete=models.DO_NOTHING)
+    item = models.ForeignKey(Item, on_delete=models.DO_NOTHING)
+    price = models.FloatField()
+
+    class Meta:
+        unique_together = ('user', 'item')

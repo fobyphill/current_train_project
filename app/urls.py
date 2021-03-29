@@ -7,4 +7,5 @@ from app.views import common, sales
 urlpatterns = [
     path('', common.index, name="index"),
     path('sales', sales.index, name="sales"),
+    path('order', sales.order_view, name="order")
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

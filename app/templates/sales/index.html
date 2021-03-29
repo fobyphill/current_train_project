@@ -53,14 +53,29 @@
 
 {% block content %}
     <div class="row">
-        <div class="col-md-7">
-            <div class="card">
-                <div class="card-body">
-                    {% include 'sales/items.html' %}
-                </div>
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                {% include 'sales/items.html' %}
+                {% if page_num > 1 %}
+                    <a href="?page=1"> &nbsp; << &nbsp; </a>
+                {% endif %}
+                {% if items.has_previous %}
+                    <a href="?page={{ items.previous_page_number }}">&nbsp; < &nbsp;</a>
+                {% endif %}
+                Страница {{ page_num }} из {{ pages_count }}
+                {% if items.has_next %}
+                    <a href="?page={{ items.next_page_number }}"> &nbsp; > &nbsp; </a>
+                {% endif %}
+                {% if page_num != pages_count %}
+                    <a href="?page={{ pages_count }}"> &nbsp; >> &nbsp; </a>
+                {% endif %}
             </div>
         </div>
-        <div class="col-md-5">
+    </div>
+    <div class="col-md-5">
+        <form id="form">
+            {% csrf_token %}
             <div class="card">
                 <div class="card-body">
                     {% include 'sales/cart-items.html' %}
@@ -71,8 +86,11 @@
                     {% include 'sales/get-items.html' %}
                 </div>
             </div>
-        </div>
+        </form>
     </div>
+</div>
+
+
 {% endblock %}
 
 {% block extra_js %}
@@ -92,68 +110,7 @@
                     searchField.addClass('mr-auto')
                 }
             });
-
-            var cartTable = $('#cart-table').DataTable({
-                responsive: true,
-                paging: false,
-                searching: false,
-                ordering: false,
-                autoWidth: false,
-                info: false,
-                columnDefs: [
-                    {
-                        targets: [ 2 ],
-                        render  : function(data, type, row){
-                            return '<div class="number">' +
-                                        '<span class="minus">-</span>' +
-                                            '<input class="sales-input2" type="text"  name="' + data + '-quantity" value="1" max="' + row[6] + '"/>' +
-                                        '<span class="plus">+</span>' +
-                                    '</div>';
-                        }
-                    },
-                    {
-                        targets: [ 3 ],
-                        render  : function(data, type, row){
-                            return '<div class="sales-input2"><span></span></div>';
-                                {#'<input class="sales-input2" type="number" name="' + data + '-discount" value="0" min="0"/>';#}
-                        }
-                    },
-                    {
-                        targets: [4],
-                        render  : function(data, type, row){
-                             return '<div class="total-field"><span id="'+ row[7] +'_total">'
-                                 + Number(data).toFixed(3) + '</span></div>';
-                        }
-                    },
-                    {
-                        "targets": [ 6 ],
-                        "visible": false,
-                        "searchable": false
-                    },
-                    {
-                        "targets": [ 7 ],
-                        "visible": false,
-                        "searchable": false
-                    },
-                ]
-            });
-
-            $(document).on('click', '.minus', function (e) {
-                var $input = $(this).parent().find('input');
-                var count = parseInt($input.val()) - 1;
-                count = count < 1 ? 1 : count;
-                $input.val(count);
-                $input.change();
-                return false;
-            });
-
-             $(document).on('click', '.plus', function (e) {
-                var $input = $(this).parent().find('input');
-                $input.val(parseInt($input.val()) + 1);
-                $input.change();
-                return false;
-            });
-             $(document).on('change', '.sales-input2', function (e){
+            $(document).on('change', '.sales-input2', function (e){
                  let $input_change = $(this).parent().find('input');
                  let $tds = $(this).parent().parent().parent().find('td');
                  let stock = parseInt(cartTable.row($tds).data()[6]);
@@ -163,8 +120,8 @@
                      $input_change[0].value = num
                  }
                  let price = parseFloat($tds[1].childNodes[0].nodeValue);
-                 let $total = $tds[4].children[0];
-                 $total.innerText = String(price * num);
+                 let $total = $tds[4].children[0].children[0];
+                 $total.value = String(price * num);
                  cartTable.row().data()[4] = String(num * price);
                  calc_cart();
                  return false;
@@ -193,21 +150,18 @@
             $('.addItem').click(function () {
                 var id = $(this).attr('data-id');
                 var name = $(this).attr('data-name');
-                var stock = $(this).attr('data-stock');
                 var price = $(this).attr('data-price');
-                cartTable.row.add([
-                    name,
-                    price,
-                    id,
-                    id,
-                    parseFloat(price),
-                    '<button class="btn btn-sm btn-danger removeItem">Remove</button>',
-                    stock,
-                    id,
-                ]).draw(false);
-
-                $('#item-'+id).parents('tr').addClass('d-none')
-                calc_cart();
+                let item_in_cart = {}
+                item_in_cart.id = id
+                item_in_cart.name = name
+                item_in_cart.price = price
+                let form = document.getElementById('form')
+                form.action = 'sales'
+                let item_cart = document.createElement('input')
+                item_cart.value = JSON.stringify(item_in_cart)
+                item_cart.name = 'cart_item'
+                form.appendChild(item_cart)
+                form.submit()
             });
             $(document).on('click', '.removeItem', function (e) {
                 var parentTr = $(this).parents('tr');
@@ -220,12 +174,13 @@
                 let itogo = 0;// Итоговая потребительская сумма
                 let table_cart = document.getElementById('cart-table').children[1] // тело таблицы
                 for (let i = 0; i < cartTable.rows().count(); i++){
-                    itogo += parseFloat(table_cart.children[i].children[4].textContent);
+                    itogo += parseFloat(table_cart.children[i].children[4].children[0].children[0].value);
                 }
                 document.getElementById('itogo_table').children[0].children[0].children[1].innerHTML =
                      "<h4><u>" + String(itogo) + "</u></h4>";
                 return false;
             }
         });
+
     </script>
 {% endblock %}
